@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>차량 등록 및 진행상황 변경 (관리자용)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        .info {
+            text-align: left;
+            margin: 20px auto;
+            width: 60%;
+        }
+        table {
+            width: 80%;
+            margin: 20px auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background: #f4f4f4;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🚗 차량 등록 및 진행상황 변경 (관리자용)</h1>
+
+    <div class="info">
+        <label for="newCarNumber">📋 차량번호:</label>
+        <input type="text" id="newCarNumber" placeholder="예: 78다1234">
+        <label for="newModel">🚗 모델명:</label>
+        <select id="newModel">
+            <option value="MODEL3">MODEL3</option>
+            <option value="MODELY">MODELY</option>
+            <option value="MODELS">MODELS</option>
+            <option value="MODELX">MODELX</option>
+        </select>
+        <label for="expectedDate">📅 출고 예정일:</label>
+        <input type="date" id="expectedDate">
+        <button onclick="registerCar()">등록</button>
+    </div>
+
+    <h2>🚘 등록된 차량 목록 및 진행상황 변경</h2>
+    <table>
+        <tr>
+            <th>차량번호</th>
+            <th>모델명</th>
+            <th>출고 예정일</th>
+            <th>진행상황</th>
+            <th>상태 변경</th>
+            <th>정비 내역</th>
+        </tr>
+        <tbody id="carTable">
+            <!-- 등록된 차량 목록 표시 -->
+        </tbody>
+    </table>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let carData = JSON.parse(localStorage.getItem("carData")) || {};
+
+            function registerCar() {
+                const newCarNumber = document.getElementById("newCarNumber").value;
+                const newModel = document.getElementById("newModel").value;
+                const expectedDate = document.getElementById("expectedDate").value;
+
+                if (!newCarNumber) {
+                    alert("차량번호를 입력하세요!");
+                    return;
+                }
+
+                if (carData[newCarNumber]) {
+                    alert("이미 등록된 차량입니다.");
+                    return;
+                }
+
+                carData[newCarNumber] = {
+                    "모델명": newModel,
+                    "진행상태": "입고",
+                    "출고예정일": expectedDate ? expectedDate : "미정",
+                    "정비내역": [[new Date().toISOString().slice(0, 10), "입고"]]
+                };
+
+                localStorage.setItem("carData", JSON.stringify(carData));
+                alert("🚗 차량이 성공적으로 등록되었습니다!");
+
+                displayCarTable();
+            }
+
+            function displayCarTable() {
+                const carTable = document.getElementById("carTable");
+                carTable.innerHTML = "";
+
+                for (const carNumber in carData) {
+                    const car = carData[carNumber];
+
+                    const row = `
+                        <tr>
+                            <td>${carNumber}</td>
+                            <td>${car.모델명}</td>
+                            <td>
+                                <input type="date" id="expected-${carNumber}" value="${car.출고예정일 !== '미정' ? car.출고예정일 : ''}"
+                                       onchange="updateExpectedDate('${carNumber}')">
+                            </td>
+                            <td id="status-${carNumber}">${car.진행상태}</td>
+                            <td>
+                                <select onchange="updateStatus('${carNumber}', this.value)">
+                                    <option value="입고" ${car.진행상태 === "입고" ? "selected" : ""}>입고</option>
+                                    <option value="부속대기" ${car.진행상태 === "부속대기" ? "selected" : ""}>부속대기</option>
+                                    <option value="수리중" ${car.진행상태 === "수리중" ? "selected" : ""}>수리중</option>
+                                    <option value="수리완료" ${car.진행상태 === "수리완료" ? "selected" : ""}>수리완료</option>
+                                    <option value="출고준비" ${car.진행상태 === "출고준비" ? "selected" : ""}>출고준비</option>
+                                    <option value="출고됨" ${car.진행상태 === "출고됨" ? "selected" : ""}>출고됨</option>
+                                </select>
+                            </td>
+                            <td>
+                                <button onclick="viewLog('${carNumber}')">정비 내역</button>
+                            </td>
+                        </tr>
+                    `;
+                    carTable.innerHTML += row;
+                }
+            }
+
+            function updateStatus(carNumber, newStatus) {
+                carData[carNumber].진행상태 = newStatus;
+                carData[carNumber].정비내역.push([new Date().toISOString().slice(0, 10), newStatus]);
+
+                localStorage.setItem("carData", JSON.stringify(carData));
+                document.getElementById(`status-${carNumber}`).textContent = newStatus;
+            }
+
+            function updateExpectedDate(carNumber) {
+                const newDate = document.getElementById(`expected-${carNumber}`).value;
+                carData[carNumber].출고예정일 = newDate ? newDate : "미정";
+
+                localStorage.setItem("carData", JSON.stringify(carData));
+                alert("📅 출고 예정일이 변경되었습니다!");
+            }
+
+            window.viewLog = function(carNumber) {
+                const logData = carData[carNumber].정비내역;
+                let logMessage = `🚗 차량번호: ${carNumber}\n📜 정비 내역:\n`;
+                logData.forEach(entry => {
+                    logMessage += `${entry[0]} - ${entry[1]}\n`;
+                });
+                alert(logMessage);
+            };
+
+            window.registerCar = registerCar;
+            window.updateStatus = updateStatus;
+            window.updateExpectedDate = updateExpectedDate;
+            displayCarTable();
+        });
+    </script>
+
+</body>
+</html>
