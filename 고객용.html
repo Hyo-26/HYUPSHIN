@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>차량 조회 시스템</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            background: white;
+            color: black;
+        }
+
+        .title {
+            background-color: #717074;
+            color: white;
+            padding: 20px;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input {
+            padding: 10px;
+            font-size: 18px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 200px;
+        }
+
+        button {
+            padding: 10px 15px;
+            font-size: 18px;
+            background: #717074;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #5d5e60;
+        }
+
+        .info-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        .progress-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px auto;
+            max-width: 800px;
+            gap: 10px;
+        }
+
+        .step {
+            position: relative;
+            text-align: center;
+        }
+
+        .step-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            font-weight: bold;
+            background: #C9CBCC; /* 기본 색상 */
+            color: white;
+        }
+
+        .step.completed .step-circle {
+            background: #AEB0B2; /* 완료된 단계 */
+        }
+
+        .step.active .step-circle {
+            background: #E31937; /* 현재 진행 중 */
+        }
+
+        .step-circle img {
+            width: 30px;
+            height: 30px;
+        }
+
+        .step-text {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .line {
+            height: 4px;
+            width: 40px;
+            background: #C9CBCC;
+        }
+
+        .step.completed .line {
+            background: #AEB0B2;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            color: black;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background: #717074;
+            color: white;
+        }
+
+        .footer {
+            padding: 15px;
+            margin-top: 30px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="title">차량 조회 시스템</div>
+
+    <div class="container">
+        <div class="info">
+            <label for="carNumber">차량번호:</label>
+            <input type="text" id="carNumber" placeholder="예: 12가3456">
+            <button onclick="updateStatus()">조회</button>
+        </div>
+
+        <div class="info-box">
+            <div><strong>차량번호:</strong> <span id="carNumberDisplay">-</span></div>
+            <div><strong>모델명:</strong> <span id="modelName">-</span></div>
+            <div><strong>진행상황:</strong> <span id="progressText">-</span></div>
+            <div><strong>출고 예정일:</strong> <span id="expectedDate">-</span></div>
+        </div>
+
+        <h2>차량 진행 상태</h2>
+        <div class="progress-container" id="progressContainer"></div>
+
+        <h2>정비 내역</h2>
+        <table>
+            <tr>
+                <th>일시</th>
+                <th>정비 현황</th>
+            </tr>
+            <tbody id="logTable">
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">협신자동차서비스(주) BUSAN</div>
+
+    <script>
+        function updateStatus() {
+            let carData = JSON.parse(localStorage.getItem("carData")) || {};
+            const carNumber = document.getElementById("carNumber").value.trim();
+            const data = carData[carNumber];
+
+            if (!data) {
+                alert("등록되지 않은 차량입니다.");
+                return;
+            }
+
+            document.getElementById("carNumberDisplay").textContent = carNumber;
+            document.getElementById("modelName").textContent = data.모델명;
+            document.getElementById("progressText").textContent = data.진행상태;
+            document.getElementById("expectedDate").textContent = data.출고예정일 || "미정";
+
+            const stages = [
+    { name: "입고", icon: "images/schedule.png" },
+    { name: "부속대기", icon: "images/spare-parts.png" },
+    { name: "수리중", icon: "images/수리중.png" },
+    { name: "수리완료", icon: "images/car-insurance.png" },
+    { name: "출고준비", icon: "images/charging-station.png" },
+    { name: "출고됨", icon: "images/car-insurances.png" }
+];
+
+
+            const currentStageIndex = stages.findIndex(stage => stage.name === data.진행상태);
+            const progressContainer = document.getElementById("progressContainer");
+
+            progressContainer.innerHTML = stages.map((stage, index) => `
+                <div class="step ${index < currentStageIndex ? "completed" : index === currentStageIndex ? "active" : ""}">
+                    <div class="step-circle">
+                        <img src="${stage.icon}" alt="${stage.name}">
+                    </div>
+                    <div class="step-text">${stage.name}</div>
+                </div>
+            `).join('');
+
+            const logTable = document.getElementById("logTable");
+            logTable.innerHTML = data.정비내역.length > 0
+                ? data.정비내역.map(log => `<tr><td>${log[0]}</td><td>${log[1]}</td></tr>`).join('')
+                : `<tr><td colspan="2">등록된 정비 내역이 없습니다.</td></tr>`;
+        }
+    </script>
+
+</body>
+</html>
